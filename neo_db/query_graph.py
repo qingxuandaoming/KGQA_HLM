@@ -59,19 +59,37 @@ def get_json_data(data):
 def get_KGQA_answer(array):
     data_array = []
     if not array:
-        return [{}, "", ""]
+        return [{'data': [], 'links': [], 'meta': {'message': '解析失败', 'candidates': []}}, '', '']
     current_name = array[0]
     for relation_name in array[1:]:
+        if '|' in relation_name:
+            parts = [r for r in relation_name.split('|') if r]
+            for rn in parts:
+                cypher = f"MATCH (p)-[r:{rn}{{relation: $relation_val}}]->(n:Person{{Name:$name}}) RETURN p.Name, n.Name, r.relation, p.cate, n.cate"
+                data = graph.run(cypher, relation_val=rn, name=current_name)
+                data = list(data)
+                if not data:
+                    continue
+                data_array.extend(data)
+            continue
         cypher = f"MATCH (p)-[r:{relation_name}{{relation: $relation_val}}]->(n:Person{{Name:$name}}) RETURN p.Name, n.Name, r.relation, p.cate, n.cate"
         data = graph.run(cypher, relation_val=relation_name, name=current_name)
         data = list(data)
         if not data:
-            break
+            cand = []
+            c2 = """
+            MATCH (p)-[r]->(n:Person{Name:$name})
+            RETURN DISTINCT r.relation AS rel, type(r) AS rel_type
+            LIMIT 20
+            """
+            for row in graph.run(c2, name=current_name):
+                cand.append(row['rel'] or row['rel_type'])
+            return [{'data': [], 'links': [], 'meta': {'message': f"未找到‘{current_name} 的 {relation_name}’关系", 'candidates': cand}}, '', '']
         data_array.extend(data)
         current_name = data_array[-1]['p.Name']
     
     if not data_array:
-        return [{}, "", ""] # Return empty result if no path found
+        return [{'data': [], 'links': [], 'meta': {'message': '未找到路径', 'candidates': []}}, '', '']
 
     final_name = data_array[-1]['p.Name']
     

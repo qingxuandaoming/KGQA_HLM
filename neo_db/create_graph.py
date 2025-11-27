@@ -86,7 +86,18 @@ def create_graph():
         MERGE (p1)-[rel:{safe_rel_type} {{relation: r.relation}}]->(p2)
         """
         graph.run(create_rel_cypher, rels=rel_data)
-        
+    
+    graph.run("""
+    MATCH (gm:Person)-[:外祖母 {relation:'外祖母'}]->(c:Person)
+    MATCH (h:Person)-[:丈夫 {relation:'丈夫'}]->(gm)
+    MERGE (h)-[:外祖父 {relation:'外祖父'}]->(c)
+    """)
+    graph.run("""
+    MATCH (gm:Person)-[:外祖母 {relation:'外祖母'}]->(c:Person)
+    MATCH (h:Person)<-[:妻 {relation:'妻'}]-(gm)
+    MERGE (h)-[:外祖父 {relation:'外祖父'}]->(c)
+    """)
+    
     print("Graph construction completed.")
 
 if __name__ == '__main__':

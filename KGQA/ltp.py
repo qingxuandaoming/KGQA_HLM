@@ -46,8 +46,35 @@ def get_target_array(words):
             entity = m[0] if m else first
 
     rels = []
+    if len(parts) == 1:
+        seg = re.sub(r"(是谁|是|谁|哪位|何人|\?|？)+", "", words)
+        if HanLP is not None:
+            doc = HanLP(seg)
+            tokens = doc.get('tok/fine', [])
+            tags = doc.get('pos/pku', [])
+            if tokens and isinstance(tokens[0], list):
+                tokens = tokens[0]
+                tags = tags[0]
+            cand = None
+            for w, t in zip(tokens, tags):
+                if REL_MAP.get(w):
+                    cand = w
+                    break
+                if t == 'n' and not cand:
+                    cand = w
+            if cand:
+                rels.append(_normalize_rel(cand))
+        else:
+            m = re.findall(r"[\u4e00-\u9fff]+", seg)
+            if m:
+                rels.append(_normalize_rel(m[-1]))
     for seg in parts[1:]:
         seg = re.sub(r"(是谁|是|谁|哪位|何人|\?|？)+", "", seg).strip()
+        if re.search(r"[和与及、]", seg):
+            items = [s for s in re.split(r"[和与及、]", seg) if s]
+            norm_items = [_normalize_rel(i) for i in items]
+            rels.append("|".join(norm_items))
+            continue
         if HanLP is not None:
             doc = HanLP(seg)
             tokens = doc.get('tok/fine', [])
