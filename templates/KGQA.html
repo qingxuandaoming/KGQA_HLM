@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -277,11 +277,16 @@
                                 });
                                 });
                             function search() {
-
                                     $.getJSON('/KGQA_answer', {
                                         name: $("#search").val(),
-
                                     }, function (json) {
+                                        // Handle meta message if present
+                                        if (json[0].meta && json[0].meta.message) {
+                                            if (json[0].data.length === 0) {
+                                                alert(json[0].meta.message + (json[0].meta.candidates.length > 0 ? "\n猜你想问：" + json[0].meta.candidates.join(", ") : ""));
+                                                return;
+                                            }
+                                        }
                                       
                                         option.series[0].nodes = json[0].data.map(function (node, idx) {
                                             node.id = idx;
@@ -291,27 +296,44 @@
                                         option.series[0].links = json[0].links;
 
                                         myChart.setOption(option, true);
-                                        $("#profile").html(json[1]);
-                                        $("#picture").css("display","block");
-                                        $("#picture").attr("src", "data:image/jpg;base64," + json[2]);
-                                    
+                                        
+                                        // Clear previous cards
+                                        $("#result-cards").empty();
+                                        
+                                        var profiles = json[1];
+                                        var images = json[2];
+                                        
+                                        // Handle legacy single item format if backend returns string (backward compatibility)
+                                        if (typeof profiles === 'string') {
+                                            profiles = [profiles];
+                                            images = [images];
+                                        }
+                                        
+                                        for (var i = 0; i < profiles.length; i++) {
+                                            var cardHtml = `
+                                            <div class="row" style="margin-bottom: 20px; border-bottom: 1px solid #eee; padding-bottom: 10px;">
+                                                <div class="row" style="width:200px;height:200px; margin-bottom:10px;">
+                                                    <img style="width:200px;height:200px;" src="${images[i] ? 'data:image/jpg;base64,' + images[i] : '../static/images/default.jpg'}">
+                                                </div>
+                                                <div class="row">
+                                                    <div class="basic-info">
+                                                        <dl class="basicInfo-block basicInfo-left">
+                                                            ${profiles[i]}
+                                                        </dl>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            `;
+                                            $("#result-cards").append(cardHtml);
+                                        }
                                     });
                                 }
                         </script>
                     </div>
                     <div class="col-lg-1"></div>
                     <div class="col-lg-4">
-                   <div class="row" style="width:200px;height:200px;">
-                        
-                            <img id="picture"style="display:none;width:200px;height:200px;" src=""  >
-                    </div>
-                        <div class="row">
-                        <div class="basic-info ">
-                        <dl class="basicInfo-block basicInfo-left" id="profile" >
-                            
-                        </dl>
-                    </div></div>
-
+                        <!-- Container for multiple result cards -->
+                        <div id="result-cards" style="max-height: 600px; overflow-y: auto;"></div>
                     </div>
                     </div>
 					

@@ -57,51 +57,58 @@ def get_json_data(data):
     return json_data
 
 def get_KGQA_answer(array):
-    data_array = []
     if not array:
-        return [{'data': [], 'links': [], 'meta': {'message': '解析失败', 'candidates': []}}, '', '']
-    current_name = array[0]
+        return [{'data': [], 'links': [], 'meta': {'message': '解析失败', 'candidates': []}}, [], []]
+    
+    current_names = [array[0]]
+    all_data = []
+    
     for relation_name in array[1:]:
-        if '|' in relation_name:
-            parts = [r for r in relation_name.split('|') if r]
-            for rn in parts:
+        next_names = []
+        rels = [r for r in relation_name.split('|') if r] if '|' in relation_name else [relation_name]
+        
+        step_data = []
+        for name in current_names:
+            for rn in rels:
                 cypher = f"MATCH (p)-[r:{rn}{{relation: $relation_val}}]->(n:Person{{Name:$name}}) RETURN p.Name, n.Name, r.relation, p.cate, n.cate"
-                data = graph.run(cypher, relation_val=rn, name=current_name)
+                data = graph.run(cypher, relation_val=rn, name=name)
                 data = list(data)
-                if not data:
-                    continue
-                data_array.extend(data)
-            continue
-        cypher = f"MATCH (p)-[r:{relation_name}{{relation: $relation_val}}]->(n:Person{{Name:$name}}) RETURN p.Name, n.Name, r.relation, p.cate, n.cate"
-        data = graph.run(cypher, relation_val=relation_name, name=current_name)
-        data = list(data)
-        if not data:
+                step_data.extend(data)
+                for row in data:
+                    next_names.append(row['p.Name'])
+        
+        if not step_data:
+            # Try to find candidates for the first failed name
+            failed_name = current_names[0] if current_names else ""
             cand = []
-            c2 = """
-            MATCH (p)-[r]->(n:Person{Name:$name})
-            RETURN DISTINCT r.relation AS rel, type(r) AS rel_type
-            LIMIT 20
-            """
-            for row in graph.run(c2, name=current_name):
-                cand.append(row['rel'] or row['rel_type'])
-            return [{'data': [], 'links': [], 'meta': {'message': f"未找到‘{current_name} 的 {relation_name}’关系", 'candidates': cand}}, '', '']
-        data_array.extend(data)
-        current_name = data_array[-1]['p.Name']
-    
-    if not data_array:
-        return [{'data': [], 'links': [], 'meta': {'message': '未找到路径', 'candidates': []}}, '', '']
+            if failed_name:
+                c2 = """
+                MATCH (p)-[r]->(n:Person{Name:$name})
+                RETURN DISTINCT r.relation AS rel, type(r) AS rel_type
+                LIMIT 20
+                """
+                for row in graph.run(c2, name=failed_name):
+                    cand.append(row['rel'] or row['rel_type'])
+            return [{'data': [], 'links': [], 'meta': {'message': f"未找到‘{failed_name} 的 {relation_name}’关系", 'candidates': cand}}, [], []]
+             
+        all_data.extend(step_data)
+        current_names = list(set(next_names))
 
-    final_name = data_array[-1]['p.Name']
+    final_names = current_names
+    profiles = []
+    images = []
     
-    # Read image
-    image_path = os.path.join("static", "images", "characters", f"{final_name}.jpg")
-    b = ""
-    if os.path.exists(image_path):
-        with open(image_path, "rb") as image:
-            base64_data = base64.b64encode(image.read())
-            b = str(base64_data).split("'")[1]
-    
-    return [get_json_data(data_array), get_profile(str(final_name)), b]
+    for name in final_names:
+        profiles.append(get_profile(str(name)))
+        image_path = os.path.join("static", "images", "characters", f"{name}.jpg")
+        if os.path.exists(image_path):
+            with open(image_path, "rb") as image:
+                b = str(base64.b64encode(image.read())).split("'")[1]
+                images.append(b)
+        else:
+            images.append("")
+            
+    return [get_json_data(all_data), profiles, images]
 
 def get_answer_profile(name):
     """
