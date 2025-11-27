@@ -1,60 +1,117 @@
 # KGQA_HLM
-基于知识图谱的《红楼梦》人物关系可视化及问答系统
+
+基于知识图谱的《红楼梦》人物关系可视化与问答系统。
 
 [![Project](https://img.shields.io/badge/project-KGQA_HLM-orange.svg)](https://github.com/chizhu/KGQA_HLM)
 [![Python version](https://img.shields.io/badge/language-python3.6-blue.svg)](https://www.python.org/downloads/release/python-360/)
 [![Issues](https://img.shields.io/github/issues/chizhu/KGQA_HLM.svg)](https://github.com/chizhu/KGQA_HLM/issues)
-[![Lisence](https://img.shields.io/badge/lisence-MIT-pink.svg)](https://github.com/chizhu/KGQA_HLM)
-[![Lisence](https://img.shields.io/badge/lisence-Anti996-blue.svg)](https://github.com/996icu/996.ICU/blob/master/LICENSE)
+[![License](https://img.shields.io/badge/lisence-MIT-pink.svg)](https://github.com/chizhu/KGQA_HLM)
+[![License](https://img.shields.io/badge/lisence-Anti996-blue.svg)](https://github.com/996icu/996.ICU/blob/master/LICENSE)
 
+~~更多信息参考历史站点：http://chizhunlp.com（现已不可用）~~
 
-* ~~详情请见 [http://chizhunlp.com](http://111.230.92.110/)~~
+**概要**
+- 使用 `Flask` 提供前端交互页面与接口。
+- 使用 `Neo4j` + `py2neo` 构建与查询人物关系知识图谱。
+- 使用 `pyltp` 对中文问题进行分词、词性标注与实体识别，完成关系链推理问答。
 
-文件树:<br>
-1)  app.py是整个系统的主入口<br>
-2)  templates文件夹是HTML的页面<br>
-     |-index.html 欢迎界面<br> 
-     |-search.html 搜索人物关系页面<br>
-     |-all_relation.html 所有人物关系页面<br>
-     |-KGQA.html 人物关系问答页面<br>
-3)  static文件夹存放css和js，是页面的样式和效果的文件<br>
-4)  raw_data文件夹是存在数据处理后的三元组文件<br>
-5)  neo_db文件夹是知识图谱构建模块<br>
-     |-config.py 配置参数<br>
-     |-create_graph.py 创建知识图谱，图数据库的建立<br>
-     |-query_graph.py 知识图谱的查询<br>
-6)  KGQA文件夹是问答系统模块<br>
-     |-ltp.py 分词、词性标注、命名实体识别<br>
-7)  spider文件夹是爬虫模块<br>
-     |- get_*.py 是之前爬取人物资料的代码，已经产生好images和json 可以不用再执行<br>
-     |-show_profile.py 是调用人物资料和图谱展示在前端的代码
-<hr>
+**目录结构**
 
-部署步骤：<br>
-* 0.安装所需的库 执行pip install -r requirement.txt<br>
-* 1.先下载好neo4j图数据库，并配好环境（注意neo4j需要jdk8）。修改neo_db目录下的配置文件config.py,设置图数据库的账号和密码。<br>
-* 2.切换到neo_db目录下，执行python  create_graph.py 建立知识图谱<br>
-* 3.去 [这里](http://pyltp.readthedocs.io/zh_CN/latest/api.html#id2) 下载好ltp模型。[ltp简介](http://ltp.ai/)<br>
-* 4.在KGQA目录下，修改ltp.py里的ltp模型文件的存放目录<br>
-* 5.运行python app.py,浏览器打开localhost:5000即可查看<br>
+```text
+KGQA_HLM/
+├─ app.py                  # 项目入口（Flask）
+├─ requirement.txt         # Python 依赖
+├─ templates/              # 前端模板
+│  ├─ index.html           # 欢迎页
+│  ├─ search.html          # 人物关系搜索
+│  ├─ all_relation.html    # 全关系展示
+│  └─ KGQA.html            # 问答页面
+├─ static/                 # 前端资源（CSS/JS/图片）
+├─ raw_data/
+│  └─ relation.txt         # 人物关系三元组
+├─ neo_db/                 # 图谱构建与查询模块
+│  ├─ config.py            # 图数据库连接配置
+│  ├─ creat_graph.py       # 构建知识图谱
+│  └─ query_graph.py       # 查询接口
+├─ KGQA/
+│  └─ ltp.py               # LTP 分词/词性/实体识别与问答预处理
+└─ spider/                 # 人物资料与展示
+   ├─ images/              # 人物图片
+   └─ show_profile.py      # 资料展示
+```
 
-系统整体流程图：
+**环境要求**
+- Python `3.6`（建议使用虚拟环境管理依赖）。
+- Neo4j 图数据库（需启用 HTTP `http://localhost:7474`，建议 JDK8）。
+- LTP 模型文件（建议使用 `ltp_data_v3.4.0`）。
 
-![流程](https://github.com/chizhu/KGQA_HLM/blob/master/%E5%9B%BE%E7%89%87%201.png)
+**快速开始**
 
-网站示例:<br>
-欢迎界面
+1. 创建并激活虚拟环境（Windows）：
 
-![欢迎界面](https://github.com/chizhu/KGQA_HLM/blob/master/1.png)
+```powershell
+python -m venv .venv
+.\.venv\Scripts\activate
+python -m pip install -U pip
+pip install -r requirement.txt
+```
 
-主界面
+2. 配置 Neo4j 连接：编辑 `neo_db/config.py`，设置地址、用户名与密码，例如：
 
-![界面](https://github.com/chizhu/KGQA_HLM/blob/master/2.png)
+```python
+graph = Graph(
+    "http://localhost:7474",
+    username="neo4j",
+    password="<your_password>"
+)
+```
 
-![界面](https://github.com/chizhu/KGQA_HLM/blob/master/3.png)
+3. 准备知识图谱数据并构建图谱（在项目根目录执行）：
 
-![界面](https://github.com/chizhu/KGQA_HLM/blob/master/4.png)
+```powershell
+python neo_db/creat_graph.py
+```
 
-![界面](https://github.com/chizhu/KGQA_HLM/blob/master/5.png)
+4. 安装并配置 LTP：从官方文档下载模型文件；将本机模型目录设置到 `KGQA/ltp.py` 的 `LTP_DATA_DIR`，例如：
 
-![界面](https://github.com/chizhu/KGQA_HLM/blob/master/6.png)
+```python
+LTP_DATA_DIR = r"D:\ltp\ltp_data_v3.4.0"
+```
+
+5. 启动 Web 服务：
+
+```powershell
+python app.py
+```
+
+浏览器访问 `http://127.0.0.1:5000/`。
+
+**页面与接口**
+- `GET /` 或 `/index`：欢迎页。
+- `GET /search`：输入人物名，查看其关系网络与详情。
+- `GET /KGQA`：基于关系链的自然语言问答。
+- `GET /get_profile?character_name=人物名`：返回人物资料与头像。
+- `GET /search_name?name=人物名`：返回人物的出入边关系数据。
+- `GET /KGQA_answer?name=问题文本`：返回问答结果与路径。
+
+**常见注意事项**
+- 依赖文件名为 `requirement.txt`（非 `requirements.txt`）。
+- 图谱构建脚本文件名为 `creat_graph.py`（非 `create_graph.py`）。
+- 构建图谱时请在项目根目录执行，以便脚本正确定位 `raw_data/relation.txt`。
+- 请确保 `spider/images/` 下存在对应人物图片，否则返回的 Base64 头像为空。
+
+**系统流程图**
+
+![流程](图片 1.png)
+
+**界面示例**
+
+![欢迎界面](1.png)
+![界面](2.png)
+![界面](3.png)
+![界面](4.png)
+![界面](5.png)
+![界面](6.png)
+
+**许可**
+- MIT License；支持 Anti-996 许可倡议。
