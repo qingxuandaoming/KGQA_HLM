@@ -1,7 +1,10 @@
-from py2neo import Graph, Node, Relationship,NodeSelector
-from config import graph
+from py2neo import Graph, Node, Relationship
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from neo_db.config import graph
 
-with open("./raw_data/relation.txt") as f:
+with open("./raw_data/relation.txt", encoding='utf-8') as f:
     for line in f.readlines():
         rela_array=line.strip("\n").split(",")
         print(rela_array)

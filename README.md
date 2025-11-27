@@ -31,7 +31,7 @@ KGQA_HLM/
 │  └─ relation.txt         # 人物关系三元组
 ├─ neo_db/                 # 图谱构建与查询模块
 │  ├─ config.py            # 图数据库连接配置
-│  ├─ creat_graph.py       # 构建知识图谱
+│  ├─ create_graph.py       # 构建知识图谱
 │  └─ query_graph.py       # 查询接口
 ├─ KGQA/
 │  └─ ltp.py               # LTP 分词/词性/实体识别与问答预处理
@@ -55,19 +55,19 @@ python -m pip install -U pip
 pip install -r requirement.txt
 ```
 
-2. 配置 Neo4j 连接：编辑 `neo_db/config.py`，设置地址、用户名与密码，例如：
+2. 配置 Neo4j 连接：默认使用 `bolt://localhost:7687`。
+   推荐新建 `neo_db/local_config.py`（已加入 .gitignore）来配置个人密码：
 
 ```python
-graph = Graph(
-    "http://localhost:7474",
-    auth=("neo4j", "<your_password>")
-)
+NEO4J_URI = "bolt://localhost:7687"
+NEO4J_USER = "neo4j"
+NEO4J_PASSWORD = "your_password"
 ```
 
 3. 准备知识图谱数据并构建图谱（在项目根目录执行）：
 
 ```powershell
-python neo_db/creat_graph.py
+python neo_db/create_graph.py
 ```
 
 4. 启动 Web 服务：
@@ -88,7 +88,7 @@ python app.py
 
 **常见注意事项**
 - 依赖文件名为 `requirement.txt`（非 `requirements.txt`）。
-- 图谱构建脚本文件名为 `creat_graph.py`（非 `create_graph.py`）。
+- 图谱构建脚本文件名为 `create_graph.py`。
 - 构建图谱时请在项目根目录执行，以便脚本正确定位 `raw_data/relation.txt`。
 - 请确保 `spider/images/` 下存在对应人物图片，否则返回的 Base64 头像为空。
 
