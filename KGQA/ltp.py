@@ -9,6 +9,7 @@ try:
     import hanlp
 except Exception:
     hanlp = None
+from neo_db.config import similar_words as REL_MAP
 
 # Load HanLP model
 # Using the small multi-task learning model which balances accuracy and performance.
@@ -20,63 +21,51 @@ if hanlp is not None:
     except Exception:
         HanLP = None
 
-def get_target_array(words):
-    """
-    Extract target words (Person Names and Nouns) from the input string using HanLP.
-    
-    Args:
-        words (str): The input question or text.
-        
-    Returns:
-        list: A list of target words (names and nouns).
-    """
-    # Target POS tags:
-    # nr -> Person Name
-    # n -> Noun
-    target_pos = ['nr', 'n']
-    target_array = []
-    
-    # If HanLP failed to load, use a lightweight fallback
-    # Always use lightweight fallback during test runs to avoid model download
-    if HanLP is None:
-        # Naive fallback: extract Chinese sequences and return first two tokens
-        tokens = re.findall(r"[\u4e00-\u9fff]+", words)
-        target_array = []
-        if tokens:
-            target_array.append(tokens[0])
-            if len(tokens) > 1:
-                target_array.append(tokens[1])
-        return target_array
+def _normalize_rel(w):
+    return REL_MAP.get(w, w)
 
-    # Run HanLP pipeline on the input text
-    doc = HanLP(words)
-    
-    # Extract tokens and POS tags.
-    # We use PKU standard POS tags.
-    tokens = doc['tok/fine']
-    pos_tags = doc['pos/pku']
-    
-    # Flatten nested lists if multiple sentences are detected
-    flat_words = []
-    flat_tags = []
-    
-    if tokens and isinstance(tokens[0], list):
-        for sentence in tokens:
-            flat_words.extend(sentence)
-        for sentence_tags in pos_tags:
-            flat_tags.extend(sentence_tags)
-    else:
-        flat_words = tokens
-        flat_tags = pos_tags
-    
-    # Filter words based on POS tags
-    for word, flag in zip(flat_words, flat_tags):
-        if flag in target_pos:
-            target_array.append(word)
-    
-    # Legacy logic: append the second word in the segmented list if available
-    # This seems specific to the original question pattern logic.
-    if len(flat_words) > 1:
-        target_array.append(flat_words[1])
-        
-    return target_array
+def get_target_array(words):
+    parts = [p for p in re.split(r"的+", words) if p]
+
+    entity = None
+    if parts:
+        first = parts[0]
+        if HanLP is not None:
+            doc = HanLP(first)
+            tokens = doc.get('tok/fine', [])
+            tags = doc.get('pos/pku', [])
+            if tokens and isinstance(tokens[0], list):
+                tokens = tokens[0]
+                tags = tags[0]
+            for w, t in zip(tokens, tags):
+                if t == 'nr':
+                    entity = w
+                    break
+        if entity is None:
+            m = re.findall(r"[\u4e00-\u9fff]+", first)
+            entity = m[0] if m else first
+
+    rels = []
+    for seg in parts[1:]:
+        seg = re.sub(r"(是谁|是|谁|哪位|何人|\?|？)+", "", seg).strip()
+        if HanLP is not None:
+            doc = HanLP(seg)
+            tokens = doc.get('tok/fine', [])
+            tags = doc.get('pos/pku', [])
+            if tokens and isinstance(tokens[0], list):
+                tokens = tokens[0]
+                tags = tags[0]
+            candidate = None
+            for w, t in zip(tokens, tags):
+                if REL_MAP.get(w):
+                    candidate = w
+                    break
+                if t == 'n' and not candidate:
+                    candidate = w
+            rels.append(_normalize_rel(candidate or seg))
+        else:
+            rels.append(_normalize_rel(seg))
+
+    if entity is None:
+        return []
+    return [entity] + rels

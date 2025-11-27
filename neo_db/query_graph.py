@@ -57,30 +57,18 @@ def get_json_data(data):
     return json_data
 
 def get_KGQA_answer(array):
-    """
-    Perform multi-hop reasoning based on the input entity and relation path.
-    """
     data_array = []
-    for i in range(len(array) - 2):
-        if i == 0:
-            name = array[0]
-        else:
-            name = data_array[-1]['p.Name']
-        
-        relation_key = array[i+1]
-        if relation_key not in similar_words:
-            # Handle case where relation is not found
-            print(f"Relation '{relation_key}' not found in dictionary.")
-            continue
-            
-        relation_name = similar_words[relation_key]
-
-        # Parameterized query
+    if not array:
+        return [{}, "", ""]
+    current_name = array[0]
+    for relation_name in array[1:]:
         cypher = f"MATCH (p)-[r:{relation_name}{{relation: $relation_val}}]->(n:Person{{Name:$name}}) RETURN p.Name, n.Name, r.relation, p.cate, n.cate"
-        
-        data = graph.run(cypher, relation_val=relation_name, name=name)
+        data = graph.run(cypher, relation_val=relation_name, name=current_name)
         data = list(data)
+        if not data:
+            break
         data_array.extend(data)
+        current_name = data_array[-1]['p.Name']
     
     if not data_array:
         return [{}, "", ""] # Return empty result if no path found
