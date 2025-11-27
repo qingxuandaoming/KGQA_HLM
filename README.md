@@ -3,7 +3,7 @@
 基于知识图谱的《红楼梦》人物关系可视化与问答系统。
 
 [![Project](https://img.shields.io/badge/project-KGQA_HLM-orange.svg)](https://github.com/chizhu/KGQA_HLM)
-[![Python version](https://img.shields.io/badge/language-python3.6-blue.svg)](https://www.python.org/downloads/release/python-360/)
+[![Python version](https://img.shields.io/badge/language-python3.10-blue.svg)](https://www.python.org/downloads/release/python-3100/)
 [![Issues](https://img.shields.io/github/issues/chizhu/KGQA_HLM.svg)](https://github.com/chizhu/KGQA_HLM/issues)
 [![License](https://img.shields.io/badge/lisence-MIT-pink.svg)](https://github.com/chizhu/KGQA_HLM)
 [![License](https://img.shields.io/badge/lisence-Anti996-blue.svg)](https://github.com/996icu/996.ICU/blob/master/LICENSE)
@@ -13,7 +13,7 @@
 **概要**
 - 使用 `Flask` 提供前端交互页面与接口。
 - 使用 `Neo4j` + `py2neo` 构建与查询人物关系知识图谱。
-- 使用 `pyltp` 对中文问题进行分词、词性标注与实体识别，完成关系链推理问答。
+- 使用 `jieba` 对中文问题进行分词、词性标注与实体识别，完成关系链推理问答。
 
 **目录结构**
 
@@ -41,9 +41,8 @@ KGQA_HLM/
 ```
 
 **环境要求**
-- Python `3.6`（建议使用虚拟环境管理依赖）。
-- Neo4j 图数据库（需启用 HTTP `http://localhost:7474`，建议 JDK8）。
-- LTP 模型文件（建议使用 `ltp_data_v3.4.0`）。
+- Python `3.10`（建议使用虚拟环境管理依赖）。
+- Neo4j 图数据库（需启用 HTTP `http://localhost:7474`，建议 JDK21）。
 
 **快速开始**
 
@@ -61,8 +60,7 @@ pip install -r requirement.txt
 ```python
 graph = Graph(
     "http://localhost:7474",
-    username="neo4j",
-    password="<your_password>"
+    auth=("neo4j", "<your_password>")
 )
 ```
 
@@ -72,13 +70,7 @@ graph = Graph(
 python neo_db/creat_graph.py
 ```
 
-4. 安装并配置 LTP：从官方文档下载模型文件；将本机模型目录设置到 `KGQA/ltp.py` 的 `LTP_DATA_DIR`，例如：
-
-```python
-LTP_DATA_DIR = r"D:\ltp\ltp_data_v3.4.0"
-```
-
-5. 启动 Web 服务：
+4. 启动 Web 服务：
 
 ```powershell
 python app.py
